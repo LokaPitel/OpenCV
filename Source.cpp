@@ -11,7 +11,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/core/cuda.hpp>
 
-
 /*
 	block_width
 	___|___
@@ -116,7 +115,6 @@ public:
 				for (int i = 0; i < image_height / block_height; i++)
 					for (int j = 0; j < image_width / block_width; j++)
 					{
-
 						cv::Mat block = cv::Mat(image,
 							cv::Rect(j * block_width,
 								i * block_height,
@@ -128,18 +126,28 @@ public:
 						for (int row = 0; row < block_height; row++)
 							for (int col = 0; col < block_width; col++)
 								for (int dim = 0; dim < image_channels; dim++)
-									vector.at<double>(dim + image_channels * (row + col)) = block.at<cv::Vec3d>(row, col)[dim];
+									vector.at<double>(dim + image_channels * col + image_channels * block_width * row) = block.at<cv::Vec3d>(row, col)[dim];
 						//vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<double>(row, col);
 
 						//std::cout << vector << "\n";
 						//exit(1);
 
 						cv::Mat values_of_layer1 = weight1 * vector;
+
+						//std::cout << values_of_layer1;
+
 						cv::Mat output_values = weight2 * values_of_layer1;
+
+						//std::cout << output_values;
 
 						cv::Mat delta = output_values - vector;
 
+						//std::cout << delta;
+
+						//exit(1);
+
 						cv::Mat tmp = delta.t() * delta;
+						//std::cout << tmp.size();
 						double error = tmp.at<double>(0, 0);
 
 						errors.push_back(error);
@@ -156,7 +164,7 @@ public:
 						for (int i = 0; i < weight2.rows; i++)
 						{
 							cv::Mat length_tmp = weight2.row(i) * weight2.row(i).t();
-							double length = length_tmp.at<double>(0, 0);
+							double length = cv::sqrt(length_tmp.at<double>(0, 0));
 
 							weight2.row(i) /= length;
 						}
@@ -164,10 +172,12 @@ public:
 						for (int i = 0; i < weight1.rows; i++)
 						{
 							cv::Mat length_tmp = weight1.row(i) * weight1.row(i).t();
-							double length = length_tmp.at<double>(0, 0);
+							double length = cv::sqrt(length_tmp.at<double>(0, 0));
 
 							weight1.row(i) /= length;
 						}
+
+						//std::cout << weight2.row(0);
 					}
 
 				double sum_error = 0.0;
@@ -206,7 +216,7 @@ public:
 					for (int row = 0; row < block_height; row++)
 						for (int col = 0; col < block_width; col++)
 							for (int dim = 0; dim < image_channels; dim++)
-								vector.at<double>(dim + image_channels * (row + col)) = block.at<cv::Vec3d>(row, col)[dim];
+								vector.at<double>(dim + image_channels * col + image_channels * block_width * row) = block.at<cv::Vec3d>(row, col)[dim];
 					//vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<double>(row, col);
 
 					cv::Mat values_of_layer1 = weight1 * vector;
@@ -223,7 +233,7 @@ public:
 							cv::Vec3d tmp_vector = cv::Vec3d();
 
 							for (int dim = 0; dim < image_channels; dim++)
-								tmp_vector[dim] = output_values.at<double>(dim + image_channels * (row + col));
+								tmp_vector[dim] = output_values.at<double>(dim + image_channels * col + image_channels * block_width * row);
 
 							recreated_block.at<cv::Vec3d>(row, col) = tmp_vector;
 						}
@@ -245,9 +255,10 @@ public:
 
 int main()
 {
+	// --------------------------------------| W |  H|CHAN|BW| BH |
 	AutoencoderModel model = AutoencoderModel(256, 256, 3, 2, 2);
 	model.sampleData("images");
-	model.train(1);
+	model.train(5);
 	model.forwardPropogation("output\\");
 
 	return 0;
