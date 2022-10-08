@@ -1,12 +1,14 @@
 #include <iostream>
 #include <string>
-#include <fstream>
 #include <filesystem>
+#include <iomanip>
 #include <vector>
 #include <chrono>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/core/cuda.hpp>
+
 
 /*
 	block_width
@@ -23,6 +25,39 @@
 
 */
 
+class AutoencoderModel
+{
+private:
+	const int image_type = CV_64FC3;
+	const int weight_type = CV_64FC1;
+
+	cv::Mat weight1;
+	cv::Mat weight2;
+
+	int block_width;
+	int block_height;
+	int block_volume;
+
+	int image_width;
+	int image_height;
+	int image_channels;
+
+
+public:
+	AutoencoderModel(int image_width, int image_height, int image_channels, int block_width, int block_height) 
+		: image_width(image_width), image_height(image_height), image_channels(image_channels),
+		block_width(block_width), block_height(block_height)
+	{
+		block_volume = block_width * block_height * image_channels;
+
+		cv::Mat weight1 = cv::Mat(block_volume / 2, block_volume, weight_type);
+		cv::randu(weight1, 0, 1);
+
+		cv::Mat weight2 = cv::Mat(block_volume, block_volume / 2, weight_type);
+		cv::randu(weight2, 0, 1);
+	}
+};
+
 int main()
 {
 	// Program settings
@@ -33,9 +68,9 @@ int main()
 	const int image_width = 256;
 	const int image_height = 256;
 
-	const int image_channels = 1;
+	const int image_channels = 3;
 
-	int image_type = CV_64FC1;
+	int image_type = CV_64FC3;
 	int weight_type = CV_64FC1;
 
 	// Learning parameters:
@@ -60,7 +95,7 @@ int main()
 	{
 		std::string filename = file.path().u8string();
 
-		cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+		cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
 
 		image.convertTo(image, image_type);
 
@@ -86,6 +121,9 @@ int main()
 	// training
 	for (int epoch = 0; epoch < epochs; epoch++)
 	{
+		if (is_trained)
+			break;
+
 		std::cout << "Epoch " << epoch + 1 << " =---------------------------------------=\n";
 		for (int k = 0; k < images.size(); k++)
 		{
@@ -96,6 +134,8 @@ int main()
 			// Dividing image by blocks
 
 			std::vector<double> errors;
+
+
 
 			for (int i = 0; i < image_height / block_height; i++)
 				for (int j = 0; j < image_width / block_width; j++)
@@ -112,11 +152,11 @@ int main()
 					for (int row = 0; row < block_height; row++)
 						for (int col = 0; col < block_width; col++)
 							for (int dim = 0; dim < image_channels; dim++)
-								//vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<cv::Vec3d>(row, col)[dim];
-								vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<double>(row, col);
+								vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<cv::Vec3d>(row, col)[dim];
+								//vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<double>(row, col);
 
 					cv::Mat values_of_layer1 = weight1 * vector;
-					//std::cout << values_of_layer1;
+					std::cout << values_of_layer1;
 
 					cv::Mat output_values = weight2 * values_of_layer1;
 
@@ -133,8 +173,8 @@ int main()
 					tmp = 1 / (vector.t() * vector);
 					double learning_rate1 = tmp.at<double>(0, 0);
 
-					//learning_rate1 = 0.005;
-					//learning_rate2 = 0.005;
+				/*	learning_rate1 = 0.005;
+					learning_rate2 = 0.005;*/
 
 					weight2 = weight2 - learning_rate2 * delta * values_of_layer1.t();
 					weight1 = weight1 - learning_rate1 * weight2.t() * delta * vector.t();
@@ -157,6 +197,7 @@ int main()
 
 						weight1.row(i) /= length;
 					}
+
 				}
 
 			double sum_error = 0.0;
@@ -168,15 +209,15 @@ int main()
 			long minutes = seconds / 60;
 			seconds -= minutes * 60;
 
-			std::cout << "Processing image(" << k + 1 << "/" << images.size() << "): " << std::to_string(sum_error)
+			std::cout << "Processing image(" << k + 1 << "/" << images.size() << "): " << std::setw(40) << std::to_string(sum_error)
 				<< " time left: " << minutes << "m " << seconds << "s" << "\n";
 		}
 	}
 
 	if (is_trained)
 	{
-		weight1 = cv::imread("..\\weight1.png", weight_type);
-		weight2 = cv::imread("..\\weight2.png", weight_type);
+		weight1 = cv::imread("weight1.png", weight_type);
+		weight2 = cv::imread("weight2.png", weight_type);
 	}
 
 	else
@@ -205,8 +246,8 @@ int main()
 				for (int row = 0; row < block_height; row++)
 					for (int col = 0; col < block_width; col++)
 						for (int dim = 0; dim < image_channels; dim++)
-							//vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<cv::Vec3d>(row, col)[dim];
-							vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<double>(row, col);
+							vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<cv::Vec3d>(row, col)[dim];
+							//vector.at<double>(dim + image_channels * (row + block_width * col)) = block.at<double>(row, col);
 
 				cv::Mat values_of_layer1 = weight1 * vector;
 
@@ -224,9 +265,13 @@ int main()
 
 						for (int dim = 0; dim < image_channels; dim++)
 							tmp_vector[dim] = output_values.at<double>(dim + image_channels * (row + block_width * col));
+							//recreated_block.at<double>(row, col) = output_values.at<double>(dim + image_channels * (row + block_width * col));
+
 								
 						recreated_block.at<cv::Vec3d>(row, col) = tmp_vector;
+						//recreated_block.at<double>(row, col) = tmp_vector;
 					}
+
 			}
 
 		recreated_image = (recreated_image + 1) * 255.0 / 2;
