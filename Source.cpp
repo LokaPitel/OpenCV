@@ -112,12 +112,31 @@ public:
 				std::vector<double> errors;
 
 				// Dividing image by blocks
-				for (int i = 0; i < image_height / block_height; i++)
-					for (int j = 0; j < image_width / block_width; j++)
+				int overflow = image_height % block_height;
+
+				int row_iterations = image_height / block_height;
+				if (overflow > 0)
+					row_iterations += 1;
+
+				int col_iterations = image_width / block_width;
+				if (overflow > 0)
+					col_iterations += 1;
+
+				int width_offset = 0;
+				int height_offset = 0;
+
+				for (int i = 0; i < row_iterations; i++)
+					for (int j = 0; j < col_iterations; j++)
 					{
+						if (i == row_iterations - 1)
+							height_offset = overflow;
+
+						if (j == col_iterations - 1)
+							width_offset = overflow;
+
 						cv::Mat block = cv::Mat(image,
-							cv::Rect(j * block_width,
-								i * block_height,
+							cv::Rect(j * block_width - width_offset,
+								i * block_height - height_offset,
 								block_width,
 								block_height));
 
@@ -250,7 +269,26 @@ public:
 
 	void forwardPropogation(const char* resultPath) { forwardPropogation(std::string(resultPath)); }
 
-	void save() { ; }
+	void save()
+	{ 
+		cv::Mat tmp = weight1.clone();
+		tmp = (tmp + 1) / 2.0 * 255;
+		tmp.convertTo(tmp, CV_8UC3);
+
+		cv::imwrite("weight1", tmp);
+
+		cv::Mat tmp = weight2.clone();
+		tmp = (tmp + 1) / 2.0 * 255;
+		tmp.convertTo(tmp, CV_8UC3);
+
+		cv::imwrite("weight2", tmp);
+	}
+
+	void load()
+	{
+		weight1 = cv::imread("weight1", cv::IMREAD_COLOR);
+		weight2 = cv::imread("weight2", cv::IMREAD_COLOR);
+	}
 };
 
 int main()
@@ -260,6 +298,7 @@ int main()
 	model.sampleData("images");
 	model.train(5);
 	model.forwardPropogation("output\\");
+	model.save();
 
 	return 0;
 }
