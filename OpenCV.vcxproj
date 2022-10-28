@@ -24,6 +24,9 @@
     <ProjectGuid>{87d4a579-3e84-4d2c-948b-9f3e41c349aa}</ProjectGuid>
     <RootNamespace>OpenCV</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+	<VcpkgTriplet Condition="'$(Platform)'=='x64'">x64-windows-static</VcpkgTriplet>
+	  <VcpkgTriplet Condition="'$(Platform)'=='Win32'">x86-windows-static</VcpkgTriplet>
+
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -104,13 +107,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Philosopher\Downloads\opencv343\opencv\build\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\ImageMagick-7.1.0-Q16-HDRI\include;C:\Users\Philosopher\Downloads\opencv343\opencv\build\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>C:\Users\Philosopher\Downloads\opencv343\opencv\build\x64\vc15\lib\opencv_world343.lib;C:\Users\Philosopher\Downloads\opencv343\opencv\build\x64\vc15\lib\opencv_world343d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Philosopher\Downloads\opencv343\opencv\build\x64\vc15\lib\opencv_world343.lib;C:\Users\Philosopher\Downloads\opencv343\opencv\build\x64\vc15\lib\opencv_world343d.lib;C:\Program Files\ImageMagick-7.1.0-Q16-HDRI\lib\CORE_RL_Magick++_.lib;C:\Program Files\ImageMagick-7.1.0-Q16-HDRI\lib\CORE_RL_MagickCore_.lib;C:\Program Files\ImageMagick-7.1.0-Q16-HDRI\lib\CORE_RL_MagickWand_.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
